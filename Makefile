@@ -14,7 +14,7 @@ endif
 export TEXMFHOME ?= lsst-texmf/texmf
 
 $(DOCNAME).pdf: $(tex) meta.tex local.bib
-	latexmk -bibtex -xelatex -f $(DOCNAME)
+	latexmk -bibtex -xelatex -f $(DOCNAME) -interaction=nonstopmode
 
 acronyms.tex: $(tex) myacronyms.txt
 	$(TEXMFHOME)/../bin/generateAcronyms.py $(tex)
