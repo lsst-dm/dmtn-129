@@ -44,29 +44,11 @@ A proposal for how to integrate traditional detect/fit/subtract crowded stellar 
 % Create the title page.
 \maketitle
 
-\section{Background and Context}
-
-The DM baseline plan for direct-image processing crowded stellar fields has long been to make ``best-effort'' improvements to detection, deblending, and measurement algorithms designed for relatively high galactic latitude processing (the LSST 18000 deg2 footprint).
-This might mean incorporating some aspects of traditional crowded-field processing (cf. DAOPHOT ALLSTAR), such as iterative detection and subtraction, but changes focused on improving performance in crowded stellar fields would be regarded as lower priority than making the processing perform well in uncrowded fields.
-Our primary plan -never a detailed one - centered around extending an SDSS-style deblending algorithm by increasing the probability that a peak would be treated as a point source in crowded regions.
-
-The lack of a clear mandate/requirements in the "best effort" language has run up against the difficulty of building even a high-latitude pipeline that can handle the amount of (mostly galaxy) blending at LSST depths, making it increasingly unlikely that the baseline would leave DM with any time to focus on crowded stellar field performance during construction.
-Moreover, while we still regard the extensions we envisioned adding to our pipelines as sound ideas, they would need to build on a solid deblending pipeline that simply does not exist yet, making it impossible to accurately gauge what our performance might be like on stellar fields until extremely late in construction.
-This is of course true of high-latitude field processing as well, though there we can point to requirements that say we must improve.
-Perhaps more importantly, it is clear that high-latitude deblending at LSST depths is well beyond the current state of the art, and hence science collaboration members unsatisfied with our processing will probably not be able to point to external code or algorithms that would do substantially better.
-This is not true for crowded stellar fields, where algorithms have long existed that can process extremely crowded stellar fields much better than either our current algorithms or those we would be likely to have by the end of construction absent any focus on crowded fields.
-These codes assume that the presence of background galaxies can be ignored, however, which much will be less true (again, due to depth) for LSST than for any previous major crowded-field survey, so it is also not guaranteed that traditional crowded-field processing would work better on LSST data, especially for regions of intermediate crowding and lower extinction.
-
-LSST does already have a clear mandate to do image differencing in crowded stellar fields, which includes generating alerts in crowded fields.
-This means that algorithms that feed image differencing are already required to perform robustly in crowded fields.
-In many cases (such as PSF and background estimation), image differencing has little or no dependence on the quality of those algorithms, essentially requiring only that they produce not-unreasonable outputs (which may still be nontrivial in extremely dense fields).
-In others (such as astrometric registration), image differencing may depend critically on how well these steps perform.
-
 \section{Proposal Overview}
 
-This document is a proposal to add traditional crowded field processing (iterative detection and subtraction of stars, simultaneous fitting of all or more stars in each frame, and an assumption that there are no galaxies) as a bifurcation of the Data Release Production deep processing pipelines, utilizing the same single-epoch processing and possibly the same coadds, but generating distinct Objects and ForcedSources.
+This document is a proposal to add traditional crowded field processing (iterative detection and subtraction of stars, simultaneous fitting of all or more stars in each frame, and an assumption that there are no galaxies) as a bifurcation of the Data Release Production deep processing pipelines, utilizing the same single-epoch processing and possibly the same coadds, but generating (in general, though not always) distinct Objects and ForcedSources.
 
-This approach differs from the baseline plan described above in that it does not rely at all on the applicability or extensibility of a (still-incomplete) high-latitude deblender to stellar fields, though it does depend on many other existing or planned DRP pipeline steps being improved in their ability to handle crowded fields.
+This approach differs from the baseline plan described in Appendix~\ref{sec:background} in that it does not rely at all on the applicability or extensibility of a (still-incomplete) high-latitude deblender to stellar fields, though it does depend on many other existing or planned DRP pipeline steps being improved in their ability to handle crowded fields.
 Overall it is no more ambitious algorithmically than existing state-of-the-art codes, and could in fact leverage some of these codes, \emph{in part}.
 
 We believe this plan is much more viable than ``just running'' an existing stellar field code on LSST data.
@@ -77,7 +59,7 @@ That would involve:
   \item configuring, tuning, and debugging such a code to perform well (scientifically and computationally) on LSST data.
 \end{itemize}
 The last step must be done regardless, of course, but we do not believe starting from an existing code (in its entirety) will make it substantially easier.
-And our judgement is that the computational and (especially) develpment costs of running an existing external code largely as-is are likely to be higher than the costs associated with integrating just the core of an existing code (or writing one from scratch) as described below.
+And our judgement is that the computational and (especially) development costs of running an existing external code largely as-is are likely to be higher than the costs associated with integrating just the core of an existing code (or writing one from scratch) as described below.
 
 \section{Pipeline Changes}
 
@@ -89,12 +71,8 @@ The purpose of these steps is primarily about characterizing the images for late
 
 These pipeline steps are already required to be robust in crowded fields to support image subtraction, which also depends on them.
 In the baseline, this robustness could come at the expense of accuracy - because image subtraction does not depend sensitively on background subtraction or PSF estimation, we could probably get away with using simpler models that are easier to fit in crowded fields, though it is also true that doing better on those characterizations may make image subtraction easier.
-Perhaps more importantly, it may in fact be necessary to do quite well on all of these in order to generate good templates for image subtraction in crowded fields, especially when DCR correction is involved.
+Perhaps more importantly, it may in fact be necessary to do quite well on all of these in order to generate good templates for image subtraction in crowded fields, especially when DCR correction is involved.  Still, it is probably true that direct crowded-field processing downstream of these pipeline steps would require them to work better in at least some ways than the baseline effectively requires.
 
-Still, it is probably true that direct crowded-field processing downstream of these pipeline steps would require them to work better in at least some ways than the baseline effectively requires.
-Overall, though, given how little we currently know about how much these steps will have to improve in crowded stellar fields to support baseline image subtraction and DCR correction, the larger problem is timing: we have considerable work to do on these earlier steps before they will produce inputs that could be used to start developing downstream crowded field algorithms in earnest, because the image subtraction and DCR correction are not yet advanced enough for us to try them on crowded stellar fields (and hence they are unlikely to drive improvements in these steps in the near term, either).
-
-In order to start work on new downstream crowded field algorithms, then, we have to start with robustness improvements to our image characterization steps.
 There may be relatively little qualitatively new algorithm development here, because our goal is not to detect and measure all sources in single-epoch images; instead we simply need enough robust measurements to characterize the image.
 Running the iterative detection/fitting/subtraction code described in \hyperref[sec:coadd-processing]{Coadd Processing} on single epoch images as well may be necessary, but that should be driven by empirical testing rather than assumed; it is possible that some aspects of image characterization could get easier in crowded fields (especially only moderately crowded fields) because the number of effectively isolated unsaturated stars may actually go up.
 
@@ -120,7 +98,8 @@ We hope be able to obtain proper motions in crowded fields from \hyperref[sec:co
 \label{sec:coaddition}
 
 Most of the qualitatively new handling of crowded fields we propose here happens in \hyperref[sec:coadd-processing]{coadd processing}, but we expect this to run on the same suite of coadds used for baseline processing.
-Specifically, we expect to need a suite of detection coadds and either direct or Kaiser-style coadds in all bands and different non-overlapping epoch ranges (we are envisioning yearly coadds, though the exact timescale we use is TBD).
+Specifically, we expect to need a suite of either direct or Kaiser-style coadds in all bands and different non-overlapping epoch ranges (we are envisioning yearly coadds, though the exact timescale we use is TBD).
+We may also use a slightly different suite of (smoothed) coadds for deep detection, but not fitting (instead of smoothing direct coadds); optimal detection coadds would be produced as a byproduct of Kaiser coaddition, but can also be produced independently.
 
 Crowded-field processing's does highlight and clarify an existing problem with our baseline plans for coaddition: direct coadds have discontinuous PSFs and noise properties wherever the set of input images changes.
 Direct coaddition does not attempt to control where these edges land, instead assuming that the fraction of objects that lie on an edge is small (so they can be flagged and thrown away).
@@ -183,11 +162,32 @@ As processing would bifurcate in \hyperref[sec:coadd-processing]{coadd processin
 The additional compute cost will likely be a small fraction of the baseline compute cost, however, and is quite possibly in the noise of our estimates of the baseline compute cost.
 As a result, the additional compute cost involved in running the crowded-field branch over the full survey could probably be completely recouped by not running the baseline processing in the most crowded parts of the survey.
 
-The same is also true for database storage costs -- the set of columns produced by the crowded-field pipeline branch will be a tiny fraction of the set of columns produced by the baseline pipeline branch.
+The same is also true for database storage costs -- the set of columns produced by the crowded field pipeline branch will be a tiny fraction of the set of columns produced by the baseline pipeline branch.
 And while the crowded field branch may indeed produce more rows than the baseline branch (by design!), the area of sky where the difference is greater than even a factor of two will be quite small, so we expect the smaller number of columns to be much more important overall.
 Taking advantage of that smaller number of columns of course requires the Object table be split into separate tables for crowded-field measurements and baseline measurements (or some more complex normalization).
 
 \appendix
+
+\section{Background and Context}
+\label{sec:background}
+
+The DM baseline plan for direct-image processing crowded stellar fields has long been to make ``best-effort'' improvements to detection, deblending, and measurement algorithms designed for relatively high galactic latitude processing (the LSST 18000 deg2 footprint).
+This might mean incorporating some aspects of traditional crowded-field processing (cf. DAOPHOT ALLSTAR), such as iterative detection and subtraction, but changes focused on improving performance in crowded stellar fields would be regarded as lower priority than making the processing perform well in uncrowded fields.
+Our primary plan -- never a detailed one -- centered around extending an SDSS-style deblending algorithm by increasing the probability that a peak would be treated as a point source in crowded regions.
+
+The lack of a clear mandate/requirements in the ``best effort'' language has run up against the difficulty of building even a high-latitude pipeline that can handle the amount of (mostly galaxy) blending at LSST depths, making it increasingly unlikely that the baseline would leave DM with any time to focus on crowded stellar field performance during construction.
+Moreover, while we still regard the extensions we envisioned adding to our pipelines as sound ideas, they would need to build on a solid deblending pipeline that simply does not exist yet, making it impossible to accurately gauge what our performance might be like on stellar fields until extremely late in construction.
+This is of course true of high-latitude field processing as well, though there we can point to requirements that say we must improve.
+Perhaps more importantly, it is clear that high-latitude deblending at LSST depths is well beyond the current state of the art, and hence science collaboration members unsatisfied with our processing will probably not be able to point to external code or algorithms that would do substantially better.
+This is not true for crowded stellar fields, where algorithms have long existed that can process extremely crowded stellar fields much better than either our current algorithms or those we would be likely to have by the end of construction (absent any focus on crowded fields).
+These codes assume that the presence of background galaxies can be ignored, however, which much will be less true (again, due to depth) for LSST than for any previous major crowded-field survey, so it is also not guaranteed that traditional crowded-field processing would work better on LSST data, especially for regions of intermediate crowding and lower extinction.
+
+LSST does already have a clear mandate to do image differencing in crowded stellar fields, which includes generating alerts in crowded fields.
+This means that algorithms that feed image differencing are already required to perform robustly in crowded fields.
+In many cases (such as PSF and background estimation), image differencing has little or no dependence on the quality of those algorithms, essentially requiring only that they produce not-unreasonable outputs (which may still be nontrivial in extremely dense fields).
+In others (such as astrometric registration), image differencing may depend critically on how well these steps perform.
+
+
 % Include all the relevant bib files.
 % https://lsst-texmf.lsst.io/lsstdoc.html#bibliographies
 \section{References} \label{sec:bib}
